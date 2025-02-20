@@ -97,7 +97,7 @@ class TogetherLLMBackend(LLMBackend):
 
     together_client: Together
     
-    def __init__(self, model: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo"):
+    def __init__(self, model: str = FREE_MODEL):
         self._tq = Queue(TogetherLLMBackend.THROTTLE_MAX)
         self._model = model
 
@@ -203,10 +203,13 @@ class CheckThatTask2(object):
 
             self.eval_frame = pandas.DataFrame({"input": queries, "output": results, "reference": refopts})
             print(f'init: Created new eval sheet with {len(queries)} test prompts.')
-            self.eval_frame.to_csv(self.eval_file)
+            self.save_eval_table()
         else:
             print('init: Eval sheet already exists.')
             self.eval_frame = pandas.read_csv(self.eval_file)
+
+    def save_eval_table(self):
+        self.eval_frame[['input', 'output', 'reference']].to_csv(self.eval_file)
 
     def train(self):
         """
@@ -224,19 +227,18 @@ class CheckThatTask2(object):
             opt_value: float | str = row['output']
 
             # Empty cells in pandas data frames are a bit of a headache.
-            if opt_value == CheckThatTask2.OUTPUT_COLUMN_EMPTY:
+            if type(opt_value) is float or (type(opt_value) is str and (opt_value in ["", CheckThatTask2.OUTPUT_COLUMN_EMPTY])):
                 rows_to_fill.append(key)
-        
+
+        print(f'fill-eval-table: Querying {len(rows_to_fill)}. This may take a long time.')        
         for c in rows_to_fill:
-            print("Getting a response for row", c)
             row: pandas.Series = self.eval_frame.loc[c]
             query_result = self.backend.query(row['input'])
             self.eval_frame.at[c, 'output'] = query_result
-            print(query_result)
 
             # Save the file each time we get a response to memoize them eagerly.
-            self.eval_frame.to_csv(self.eval_file)
-    
+            self.save_eval_table()
+
     def calculate_meteor_score_avg(self) -> float:
         tokenizer = nltk.tokenize.NLTKWordTokenizer()
         def tokenize_custom(input: str) -> Iterable[str]:
@@ -265,11 +267,14 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
         case _:
             raise NotImplementedError()
     
+    # Load profile from disk.
     with open(os.path.join(os.curdir, "profiles", f"{args.profile}.jinja2")) as templ_file:
         templ_str = templ_file.read()
 
+    # Construct the task 2 class.
     ctt2 = CheckThatTask2(args.profile, llm, jinja2.Template(templ_str))
 
+    # Delete eval table if flag is set.
     if args.clear_eval_table:
         ctt2.delete_eval_table_file()
 
@@ -288,6 +293,8 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
 
     # Then, use eval table to determine the METEOR score average across each row.
     meteor_score = ctt2.calculate_meteor_score_avg()
+
+    ctt2.save_eval_table()
 
     # Print the evaluation result.
     print(f'Meteor score for profile "{ctt2.profile_name}": {meteor_score}')
@@ -309,7 +316,9 @@ def parse_args() -> argparse.Namespace:
     checkthat_task2 = subp.add_parser('checkthat-task2', description='Harness to run the CheckThat! Task 2 and run tests on data.')
     checkthat_task2.add_argument('backend', type=str, choices=['together-ai'], help='LLM backend to use.')
     checkthat_task2.add_argument('profile', type=str, choices=[
-        os.path.splitext(x.name)[0] for x in os.scandir(os.path.join(os.curdir, 'profiles')) if os.path.splitext(x.name)[1] == '.jinja2'     
+        os.path.splitext(x.name)[0]
+        for x in os.scandir(os.path.join(os.curdir, 'profiles'))
+        if os.path.splitext(x.name)[1] == '.jinja2'
     ], help='Profile to use.')
     checkthat_task2.add_argument('-c', '--clear-eval-table', action='store_true', help='Deletes the eval table when provided.')
     checkthat_task2.add_argument('-i', '--init-only', action='store_true', help='Only run the initialization of the eval table.')
