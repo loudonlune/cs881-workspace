@@ -11,9 +11,14 @@ You don't have to use Docker. Podman will also work.
 
 ```bash
 export CHECKTHAT_CACHE_DIR=$(pwd)/.checkthat_cache
+export TRANSFORMERS_CACHE_DIR=$(pwd)/.transformers-cache
 mkdir -p "$CHECKTHAT_CACHE_DIR"
+mkdir -p "$TRANSFORMERS_CACHE_DIR"
 docker build -t checkthat_track:latest .
-docker run --rm -e "TOGETHER_API_TOKEN=<your token here>" --mount "type=bind,src=$CHECKTHAT_CACHE_DIR,dst=/usr/local/cs881/.checkthat_cache" checkthat_track:latest make run-all
+docker run --rm -e "TOGETHER_API_TOKEN=<your token here>" \
+    --mount "type=bind,src=$CHECKTHAT_CACHE_DIR,dst=/usr/local/cs881/.checkthat_cache" \
+    --mount "type=bind,src=$TRANSFORMERS_CACHE_DIR,dst=/home/${USERNAME:-ml-user}/.cache/torch" \
+    checkthat_track:latest make run-all
 ```
 
 You can change the name of the cache on your host system if you want.

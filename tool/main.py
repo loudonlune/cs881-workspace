@@ -4,14 +4,32 @@ import argparse
 import os
 import jinja2
 
-from tool.llm.base import LLMBackend
+from tool.llm.base import LLMBackend, login_to_huggingface
 from tool.llm.together_ai import TogetherLLMBackend, together_prompt
+from tool.llm.local import LocalLLMBackend
 from tool.task2 import CheckThatTask2
 
 FREE_MODEL: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 
 def noop(_: argparse.Namespace) -> int:
     print("No operation was given.")
+    return 0
+
+
+def local_chat_cmd(args: argparse.Namespace) -> int:
+    print("Loading model...")
+
+    login_to_huggingface()
+
+    local_model = LocalLLMBackend(args.model_id)
+    local_model.initialize()
+
+    print("Prompting the model...")
+
+    response = local_model.query(args.query)
+
+    print("Result:")
+    print(response[0]['generated_text'])
     return 0
 
 
@@ -86,6 +104,11 @@ def parse_args() -> argparse.Namespace:
     checkthat_task2.add_argument('-i', '--init-only', action='store_true', help='Only run the initialization of the eval table.')
     checkthat_task2.add_argument('-nq', '--no-query', action='store_true', help='Do not query the LLM.')
     checkthat_task2.set_defaults(cmd=checkthat_task2_cmd)
+
+    local_chat = subp.add_parser('chat')
+    local_chat.add_argument('-m', '--model-id', type=str, default='mistralai/Mistral-7B-Instruct-v0.3', help='Model ID to load from hugging face.')
+    local_chat.add_argument('query', type=str, help='The prompt to make to the LLM')
+    local_chat.set_defaults(cmd=local_chat_cmd)
 
     return parser.parse_args()
 

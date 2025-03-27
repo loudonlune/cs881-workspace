@@ -3,3 +3,10 @@ pandas==2.2.3
 jinja2==3.1.5
 nltk==3.9.1
 transformers==4.50.1
+torch==2.6.0
+bitsandbytes==0.45.4
+huggingface_hub==0.29.3
+accelerate==1.5.2
+protobuf==6.30.2
+sentencepiece==0.2.0
+cuda-python

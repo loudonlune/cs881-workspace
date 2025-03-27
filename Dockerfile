@@ -9,7 +9,10 @@ ARG TOGETHER_API_TOKEN
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TOGETHER_API_TOKEN=$TOGETHER_API_TOKEN
 
-RUN apt-get update -y && apt-get upgrade -y && apt-get install -y sudo vim zsh
+RUN sed -i -e's/ main/ main contrib non-free/g' /etc/apt/sources.list.d/debian.sources \
+    && apt-get update -y \
+    && apt-get upgrade -y \
+    && apt-get install -y sudo vim zsh nvidia-smi nvidia-cuda-toolkit
 
 COPY .container_files/sudoers /etc/sudoers
 
@@ -24,7 +27,7 @@ COPY requirements.txt ./
 COPY profiles ./profiles
 COPY task2tool ./task2tool
 
-RUN pip install -r requirements.txt
+RUN pip install -r requirements.txt --index-url https://download.pytorch.org/whl/cu118
 RUN chown -R "$UID:$GID" /usr/local/cs881
 
 USER $USERNAME

@@ -1,4 +1,11 @@
 
+from huggingface_hub import login
+import os
+
+def login_to_huggingface():
+    huggingface_token = os.environ.get("HUGGINGFACE_TOKEN")
+    login(huggingface_token)
+
 class LLMBackend(object):
     """
     Interface for whatever LLM we are using to implement the task.
