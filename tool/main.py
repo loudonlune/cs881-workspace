@@ -54,13 +54,12 @@ def categorizing_data_cmd(args: argparse.Namespace) -> int:
     llm: LLMBackend
     model_id: str | None = args.model_id
 
-    match args.backend:
-        case "together-ai":
-            llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
-        case "local":
-            llm = LocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_MODEL)
-        case _:
-            raise NotImplementedError()
+    if args.backend == "together-ai":
+        llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
+    elif args.backend == "local":
+        llm = LocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_MODEL)
+    else:
+        raise NotImplementedError()
     cd = CategorizeData(llm)
     if args.clear_eval_table:
         cd.delete_cat_table_file()

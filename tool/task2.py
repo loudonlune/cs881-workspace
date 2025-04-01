@@ -33,7 +33,7 @@ class CategorizeData(object):
     OUTPUT_COLUMN_EMPTY: str = '---'
     _cache_path: os.PathLike
 
-    category_df: pandas.DataFrame | None = None
+    category_df: Optional[pandas.DataFrame] = None
 
     def __init__(self, backend, repository_path: os.PathLike = os.path.join(os.curdir, "checkthat_data"), cache_path: os.PathLike = os.path.join(os.curdir, '.checkthat_cache')):
         
