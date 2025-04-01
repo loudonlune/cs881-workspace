@@ -9,6 +9,8 @@ from tool.llm.together_ai import TogetherLLMBackend, together_prompt
 from tool.llm.local import LocalLLMBackend
 from tool.task2 import CheckThatTask2
 
+from typing import Optional
+
 DEFAULT_HUGGINGFACE_MODEL: str = 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B'
 FREE_MODEL: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 
@@ -41,7 +43,7 @@ def together_chat_cmd(args: argparse.Namespace) -> int:
 
 def checkthat_task2_cmd(args: argparse.Namespace) -> int:
     llm: LLMBackend
-    model_id: str | None = args.model_id
+    model_id: Optional[str] = args.model_id
 
     if args.backend == "together-ai":
         llm = TogetherLLMBackend(model=model_id or FREE_MODEL)

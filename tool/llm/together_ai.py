@@ -6,11 +6,13 @@ import time
 from together import Together
 from together.types.chat_completions import ChatCompletionResponse
 
+from typing import Optional
+
 from tool.llm.base import LLMBackend
 
 FREE_MODEL: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 
-def get_together_client() -> Together | None:
+def get_together_client() -> Optional[Together]:
     if api_key := os.environ.get('TOGETHER_API_KEY'):
         return Together(api_key=api_key)
     else:
