@@ -16,7 +16,7 @@ class LocalLLMBackend(LLMBackend):
         self.model = AutoModelForCausalLM.from_pretrained(
             self.base_model_name,
             device_map="auto",
-            torch_dtype=torch.bfloat16,
+            #torch_dtype=torch.bfloat16,
             quantization_config=BitsAndBytesConfig(load_in_4bit=True),
             **additional_model_args,
         )
