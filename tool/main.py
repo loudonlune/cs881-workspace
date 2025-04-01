@@ -37,8 +37,20 @@ def local_chat_cmd(args: argparse.Namespace) -> int:
 def together_chat_cmd(args: argparse.Namespace) -> int:
     print("Result:", together_prompt(args.model, args.prompt))
     return 0
+# Short function to categorize the data into 3 categories
+def categorizing_data_cmd(args: argparse.Namespace) -> int:
+    llm: LLMBackend
+    model_id: str | None = args.model_id
 
-
+    match args.backend:
+        case "together-ai":
+            llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
+        case "local":
+            llm = LocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_MODEL)
+        case _:
+            raise NotImplementedError()
+    
+    
 def checkthat_task2_cmd(args: argparse.Namespace) -> int:
     llm: LLMBackend
     model_id: str | None = args.model_id

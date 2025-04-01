@@ -25,6 +25,9 @@ class CheckThatTask2Data(object):
         self.dev_ds = pandas.read_csv(os.path.join(base_path, "dev", "dev-eng.csv"))
         self.test_ds = pandas.read_csv(os.path.join(base_path, "test", "test-eng.csv"))
         self.train_ds = pandas.read_csv(os.path.join(base_path, "train", "train-eng.csv"))
+class CategorizeDate(object):
+    backend: LLMBackend
+    
 
 class CheckThatTask2(object):
     """
