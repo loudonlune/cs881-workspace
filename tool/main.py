@@ -98,7 +98,7 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
         templ_str = templ_file.read()
 
     # Construct the task 2 class.
-    ctt2 = CheckThatTask2(args.profile, llm, jinja2.Template(templ_str), cache_path=args.cache_path if 'cache_path' in args else None)
+    ctt2 = CheckThatTask2(args.profile, llm, jinja2.Template(templ_str), cache_path=args.cache_path if 'cache_path' in args else os.path.join(os.curdir, '.checkthat_cache'))
 
     # Delete eval table if flag is set.
     if args.clear_eval_table:
