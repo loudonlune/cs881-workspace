@@ -107,12 +107,12 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
 
     # Then, use eval table to determine the METEOR score average across each row.
     meteor_score = ctt2.calculate_meteor_score_avg()
-    avg_jaccard_distance, avg_jaro_distance, avg_jaro_winklet, avg_masi_distance, avg_edit_d = ctt2.interval_distances()
+    avg_jaccard_distance, avg_masi_distance = ctt2.interval_distances()
     ctt2.save_eval_table()
 
     # Print the evaluation result.
     print(f'Meteor score for profile "{ctt2.profile_name}": {meteor_score}')
-    print(f"avg jaccard distance {avg_jaccard_distance}, avg jaro distance {avg_jaro_distance}, avg jaro winklet {avg_jaro_winklet}, avg masi distance {avg_masi_distance}, avg edit distnace {avg_edit_d}")
+    print(f"avg jaccard distance {avg_jaccard_distance}, avg masi distance {avg_masi_distance}")
     return 0
 
 
