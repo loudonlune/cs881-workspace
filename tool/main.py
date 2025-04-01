@@ -43,16 +43,15 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
     llm: LLMBackend
     model_id: str | None = args.model_id
 
-    match args.backend:
-        case "together-ai":
-            llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
-            llm.initialize()
-        case "local":
-            llm = LocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_MODEL)
-            llm.initialize(use_flash=args.use_flash_attn, additional_model_args={})
-        case _:
-            raise NotImplementedError()
-            
+    if args.backend == "together-ai":
+        llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
+        llm.initialize()
+    elif args.backend ==  "local":
+        llm = LocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_MODEL)
+        llm.initialize(use_flash=args.use_flash_attn, additional_model_args={})
+    else:
+        raise NotImplementedError()
+
     # Load profile from disk.
     with open(os.path.join(os.curdir, "profiles", f"{args.profile}.jinja2")) as templ_file:
         templ_str = templ_file.read()
@@ -70,7 +69,7 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
     if args.init_only:
         print("init-only mode: Not doing anything further.")
         return 0
-    
+
     if not args.no_query:
         ctt2.train()
         ctt2.fill_eval_table()
