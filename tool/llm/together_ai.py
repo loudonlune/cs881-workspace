@@ -5,13 +5,14 @@ from queue import Queue
 import time
 from together import Together
 from together.types.chat_completions import ChatCompletionResponse
-from typing import override
+
+from typing import Optional
 
 from tool.llm.base import LLMBackend
 
 FREE_MODEL: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 
-def get_together_client() -> Together | None:
+def get_together_client() -> Optional[Together]:
     if api_key := os.environ.get('TOGETHER_API_KEY'):
         return Together(api_key=api_key)
     else:
@@ -52,18 +53,15 @@ class TogetherLLMBackend(LLMBackend):
         self._tq = Queue(TogetherLLMBackend.THROTTLE_MAX)
         self._model = model
 
-    @override
     def initialize(self):
         self.together_client = get_together_client()
         if not self.together_client:
             raise ResourceWarning("Failed to create Together client.")
 
-    @override
     def train(self, _: pandas.DataFrame):
         pass
 
-    @override
-    def query(self, querytext: str, system_prompt str | None=None) -> str:
+    def query(self, querytext: str) -> str:
         # Throttling. Wait such that the oldest request occurred over a minute ago if we have issued
         #   10 requests and the oldest of those occurred less than a minute ago.
         if self._tq.qsize() >= TogetherLLMBackend.THROTTLE_MAX:

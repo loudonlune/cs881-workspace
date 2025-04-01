@@ -20,7 +20,7 @@ class LLMBackend(object):
         """
         raise NotImplementedError()
     
-    def query(self, _: str) -> str:
+    def query(self, *args, **kwargs) -> str:
         """
         Query the LLM.
         """

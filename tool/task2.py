@@ -11,7 +11,7 @@ nltk.download('wordnet')
 import numpy
 import os
 import pandas
-from typing import Iterable
+from typing import Iterable, Optional
 
 from tool.llm.base import LLMBackend
 
@@ -59,8 +59,8 @@ class CheckThatTask2(object):
     """
     Little class to manage state for running the CheckThat! task 2 stuff.
     """
-    prompt_template: str | None = None
-    eval_frame: pandas.DataFrame | None = None
+    prompt_template: Optional[str] = None
+    eval_frame: Optional[pandas.DataFrame] = None
     data: CheckThatTask2Data
     backend: LLMBackend
     query_tmpl: jinja2.Template
