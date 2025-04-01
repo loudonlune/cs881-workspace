@@ -21,7 +21,8 @@ def are_you_sure(clear_eval_table: bool) -> bool:
 
         if usn.strip().lower() == 'y':
             return True
-    return False
+        return False
+    return True
 
 def noop(_: argparse.Namespace) -> int:
     print("No operation was given.")
@@ -77,7 +78,7 @@ def categorizing_data_cmd(args: argparse.Namespace) -> int:
         print("no-query mode: Not training or filling eval table for LLM.")
     
 def checkthat_task2_cmd(args: argparse.Namespace) -> int:
-    if not are_you_sure(args):
+    if not are_you_sure(args.clear_eval_table):
         print("User was not sure. Terminating.")
         return 0
 

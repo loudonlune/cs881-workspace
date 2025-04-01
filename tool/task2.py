@@ -197,7 +197,7 @@ class CheckThatTask2(object):
             query_result = self.backend.query(row['input'])
             self.eval_frame.at[c, 'output'] = query_result
             count += 1
-            print(f'{rows_to_fill - count} rows remaining')
+            print(f'{len(rows_to_fill) - count} rows remaining')
 
             # Save the file each time we get a response to memoize them eagerly.
             self.save_eval_table()
@@ -210,7 +210,7 @@ class CheckThatTask2(object):
         meteors = [
             nltk.meteor(references=[tokenize_custom(row['reference'])], hypothesis=tokenize_custom(row['output']))
             for _, row in self.eval_frame.iterrows()
-            if type(row['output']) is str
+            if type(row['output']) is str and row['output'] != CheckThatTask2.OUTPUT_COLUMN_EMPTY
         ]
 
         print(f"calculate_meteor_score_avg: Calculated individual meteor score for {len(meteors)} rows.")
@@ -225,7 +225,7 @@ class CheckThatTask2(object):
         def tokenize_custom(input: str) -> Iterable[str]:
             return filter(lambda tok: all(map(lambda c: isalnum(c), tok)), tokenizer.tokenize(input))
         jaccrad_d = [
-            jaccard_distance(label1=[tokenize_custom(row["reference"])], label2=tokenize_custom(row["output"]))
+            jaccard_distance(label1=tokenize_custom(row["reference"]), label2=tokenize_custom(row["output"]))
             for _, row in self.eval_frame.iterrows()
             if type(row['output']) is str]
         jaro = [
