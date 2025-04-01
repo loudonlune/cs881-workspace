@@ -1,5 +1,6 @@
 
 from curses.ascii import isalnum
+from tabnanny import check
 
 import jinja2
 import nltk
@@ -25,9 +26,34 @@ class CheckThatTask2Data(object):
         self.dev_ds = pandas.read_csv(os.path.join(base_path, "dev", "dev-eng.csv"))
         self.test_ds = pandas.read_csv(os.path.join(base_path, "test", "test-eng.csv"))
         self.train_ds = pandas.read_csv(os.path.join(base_path, "train", "train-eng.csv"))
-class CategorizeDate(object):
+
+class CategorizeData(object):
     backend: LLMBackend
-    
+    data: CheckThatTask2Data
+    OUTPUT_COLUMN_EMPTY: str = '---'
+    _cache_path: os.PathLike
+
+    category_df: pandas.DataFrame | None = None
+
+    def __init__(self, backend, repository_path: os.PathLike = os.path.join(os.curdir, "checkthat_data"), cache_path: os.PathLike = os.path.join(os.curdir, '.checkthat_cache')):
+        
+        if not os.path.isdir(repository_path):
+            print("ERROR: You must clone the CheckThat! data repository first! Use the provided makefile.")
+            raise FileNotFoundError(repository_path)
+        self.data = CheckThatTask2Data(repository_path)
+        if not os.path.isdir(cache_path):
+                try:
+                    os.mkdir(cache_path)
+                except Exception as e:
+                    print("ERROR: Failed to create cache directory.")
+                    raise e
+        self.eval_file: os.PathLike = os.path.join(self._cache_path, f"category.csv")
+
+        def delete_cat_table_file(self):
+            if os.path.isfile(self.eval_file):
+                os.remove(self.eval_file)
+            else:
+                print("Note: Eval file did not exist. Didn't change anything...")   
 
 class CheckThatTask2(object):
     """
