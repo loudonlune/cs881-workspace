@@ -68,9 +68,6 @@ class CheckThatTask2(object):
         # Determine where in the cache directory to store the eval table.
         self.eval_file: os.PathLike = os.path.join(self._cache_path, f"{self.profile_name}-eval.csv")
 
-        # Initialize backend.
-        self.backend.initialize()
-
     def delete_eval_table_file(self):
         if os.path.isfile(self.eval_file):
             os.remove(self.eval_file)
@@ -121,10 +118,13 @@ class CheckThatTask2(object):
                 rows_to_fill.append(key)
 
         print(f'fill-eval-table: Querying {len(rows_to_fill)}. This may take a long time.')
+        count = 0
         for c in rows_to_fill:
             row: pandas.Series = self.eval_frame.loc[c]
             query_result = self.backend.query(row['input'])
             self.eval_frame.at[c, 'output'] = query_result
+            count += 1
+            print(f'{rows_to_fill - count} rows remaining')
 
             # Save the file each time we get a response to memoize them eagerly.
             self.save_eval_table()
@@ -146,6 +146,7 @@ class CheckThatTask2(object):
             return round(numpy.average(meteors), 4)
         else:
             return 0.0
+
     def interval_distances(self):
         tokenizer = nltk.tokenize.NLTKWordTokenizer()
         def tokenize_custom(input: str) -> Iterable[str]:

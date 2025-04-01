@@ -58,11 +58,13 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
     match args.backend:
         case "together-ai":
             llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
+            llm.initialize()
         case "local":
             llm = LocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_MODEL)
+            llm.initialize(use_flash=args.use_flash_attn, additional_model_args={})
         case _:
             raise NotImplementedError()
-    
+            
     # Load profile from disk.
     with open(os.path.join(os.curdir, "profiles", f"{args.profile}.jinja2")) as templ_file:
         templ_str = templ_file.read()
@@ -119,6 +121,7 @@ def parse_args() -> argparse.Namespace:
     ], help='Profile to use.')
     checkthat_task2.add_argument('-c', '--clear-eval-table', action='store_true', help='Deletes the eval table when provided.')
     checkthat_task2.add_argument('-i', '--init-only', action='store_true', help='Only run the initialization of the eval table.')
+    checkthat_task2.add_argument('-f', '--use-flash-attn', action='store_true', help='Use flash attention implementation.')
     checkthat_task2.add_argument('-nq', '--no-query', action='store_true', help='Do not query the LLM.')
     checkthat_task2.set_defaults(cmd=checkthat_task2_cmd)
 
