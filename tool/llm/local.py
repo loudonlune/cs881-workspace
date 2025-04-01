@@ -1,20 +1,23 @@
 
+from sympy import use
 from tool.llm.base import LLMBackend
 
 from transformers import BitsAndBytesConfig, AutoModelForCausalLM, AutoTokenizer
+import torch
 
 class LocalLLMBackend(LLMBackend):
     def __init__(self, base_model_name: str):
         self.base_model_name = base_model_name
 
-    def initialize(self, additional_model_args: dict = {}):
+    def initialize(self, use_flash: bool = False, additional_model_args: dict = {}):
+        if use_flash:
+            additional_model_args['attn_implementation'] = 'flash_attention_2'
+
         self.tokenizer = AutoTokenizer.from_pretrained(self.base_model_name)
         self.model = AutoModelForCausalLM.from_pretrained(
             self.base_model_name,
             device_map="auto",
-            # Unsupported on my local GPU
-            #attn_implementation='flash_attention_2',
-            #torch_dtype=torch.bfloat16,
+            torch_dtype=torch.bfloat16,
             quantization_config=BitsAndBytesConfig(load_in_4bit=True),
             **additional_model_args,
         )
@@ -25,14 +28,14 @@ class LocalLLMBackend(LLMBackend):
         """
         pass
     
-    def query(self, prompt: str) -> str:
+    def query(self, prompt: str, system_prompt: str = "You are an assistant following the instructions given by the user to complete a given task.") -> str:
         """
         Query the LLM.
         """
 
         messages = [
-            {"role": "system", "content": "You are an assistant following instructions to complete a task effectively."},
-            {"role": "user", "content": prompt}
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": prompt},
         ]
 
         prompt_text = self.tokenizer.apply_chat_template(
@@ -45,7 +48,7 @@ class LocalLLMBackend(LLMBackend):
 
         output_embedding = self.model.generate(
             **input_embedding,
-            max_new_tokens=4096,
+            max_new_tokens=2048,
         )
 
         output_text = self.tokenizer.batch_decode(output_embedding, skip_special_tokens=True)[0]
