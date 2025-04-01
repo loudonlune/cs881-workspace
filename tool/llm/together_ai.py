@@ -61,7 +61,7 @@ class TogetherLLMBackend(LLMBackend):
     def train(self, _: pandas.DataFrame):
         pass
 
-    def query(self, querytext: str) -> str:
+    def query(self, querytext: str, system_prompt: Optional[str] ) -> str:
         # Throttling. Wait such that the oldest request occurred over a minute ago if we have issued
         #   10 requests and the oldest of those occurred less than a minute ago.
         if self._tq.qsize() >= TogetherLLMBackend.THROTTLE_MAX:
