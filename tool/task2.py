@@ -225,33 +225,14 @@ class CheckThatTask2(object):
         def tokenize_custom(input: str) -> Iterable[str]:
             return filter(lambda tok: all(map(lambda c: isalnum(c), tok)), tokenizer.tokenize(input))
         jaccrad_d = [
-            jaccard_distance(label1=tokenize_custom(row["reference"]), label2=tokenize_custom(row["output"]))
+            jaccard_distance(label1=set(tokenize_custom(row["reference"])), label2=set(tokenize_custom(row["output"])))
             for _, row in self.eval_frame.iterrows()
             if type(row['output']) is str]
-        jaro = [
-            jaro_similarity(s1=[tokenize_custom(row["reference"])], s2=tokenize_custom(row["output"]))
-            for _, row in self.eval_frame.iterrows()
-            if type(row['output']) is str
-            ]
-        jaro_winlket = [
-            jaro_winkler_similarity(s1=[tokenize_custom(row["reference"])], s2=tokenize_custom(row["output"]))
-            for _, row in self.eval_frame.iterrows()
-            if type(row['output']) is str
-            ]
         masi_dist =[
-            masi_distance(label1=[tokenize_custom(row["reference"])], label2=tokenize_custom(row["output"]))
+            masi_distance(label1=set(tokenize_custom(row["reference"])), label2=set(tokenize_custom(row["output"])))
             for _, row in self.eval_frame.iterrows()
-            if type(row['output']) is str
-            ]
-        edit_d = [
-            edit_distance(s1=[tokenize_custom(row["reference"])], s2=tokenize_custom(row["output"]))
-            for _, row in self.eval_frame.iterrows()
-            if type(row['output']) is str
-        ]
-        avg_jaccard_distance = round(numpy.average(jaccrad_d))
-        avg_jaro_distance = round(numpy.average(jaro))
-        avg_jaro_winklet = round(numpy.average(jaro_winlket))
-        avg_masi_distance = round(numpy.average(masi_dist))
-        avg_edit_d = round(numpy.average(edit_d))
-        return avg_jaccard_distance, avg_jaro_distance, avg_jaro_winklet, avg_masi_distance, avg_edit_d
+            if type(row['output']) is str]
+        avg_jaccard_distance = round(numpy.average(jaccrad_d),4)
+        avg_masi_distance = round(numpy.average(masi_dist), 4)
+        return avg_jaccard_distance, avg_masi_distance
 
