@@ -227,11 +227,11 @@ class CheckThatTask2(object):
         jaccrad_d = [
             jaccard_distance(label1=set(tokenize_custom(row["reference"])), label2=set(tokenize_custom(row["output"])))
             for _, row in self.eval_frame.iterrows()
-            if type(row['output']) is str]
+            if type(row['output']) is str and row['output'] != CheckThatTask2.OUTPUT_COLUMN_EMPTY]
         masi_dist =[
             masi_distance(label1=set(tokenize_custom(row["reference"])), label2=set(tokenize_custom(row["output"])))
             for _, row in self.eval_frame.iterrows()
-            if type(row['output']) is str]
+            if type(row['output']) is str and row['output'] != CheckThatTask2.OUTPUT_COLUMN_EMPTY]
         avg_jaccard_distance = round(numpy.average(jaccrad_d),4)
         avg_masi_distance = round(numpy.average(masi_dist), 4)
         return avg_jaccard_distance, avg_masi_distance
