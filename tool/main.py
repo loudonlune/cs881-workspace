@@ -54,13 +54,12 @@ def categorizing_data_cmd(args: argparse.Namespace) -> int:
     llm: LLMBackend
     model_id: str | None = args.model_id
 
-    match args.backend:
-        case "together-ai":
-            llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
-        case "local":
-            llm = LocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_MODEL)
-        case _:
-            raise NotImplementedError()
+    if args.backend == "together-ai":
+        llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
+    elif args.backend == "local":
+        llm = LocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_MODEL)
+    else:
+        raise NotImplementedError()
     cd = CategorizeData(llm)
     if args.clear_eval_table:
         cd.delete_cat_table_file()
@@ -99,7 +98,7 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
         templ_str = templ_file.read()
 
     # Construct the task 2 class.
-    ctt2 = CheckThatTask2(args.profile, llm, jinja2.Template(templ_str))
+    ctt2 = CheckThatTask2(args.profile, llm, jinja2.Template(templ_str), cache_path=args.cache_path if 'cache_path' in args else None)
 
     # Delete eval table if flag is set.
     if args.clear_eval_table:
@@ -153,6 +152,7 @@ def parse_args() -> argparse.Namespace:
     checkthat_task2.add_argument('-f', '--use-flash-attn', action='store_true', help='Use flash attention implementation.')
     checkthat_task2.add_argument('-n4', '--no-4bit-quant', action='store_true', help='When set, disables 4 bit quantization.')
     checkthat_task2.add_argument('-nq', '--no-query', action='store_true', help='Do not query the LLM.')
+    checkthat_task2.add_argument('-cp', '--cache-path', type=str, help='Path to write evaluation data to. Defaults to ./.checkthat_cache.')
     checkthat_task2.set_defaults(cmd=checkthat_task2_cmd)
 
     local_chat = subp.add_parser('chat')
