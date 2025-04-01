@@ -9,6 +9,7 @@ from tool.llm.together_ai import TogetherLLMBackend, together_prompt
 from tool.llm.local import LocalLLMBackend
 from tool.task2 import CheckThatTask2
 
+DEFAULT_HUGGINGFACE_MODEL: str = 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B'
 FREE_MODEL: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 
 def noop(_: argparse.Namespace) -> int:
@@ -29,7 +30,7 @@ def local_chat_cmd(args: argparse.Namespace) -> int:
     response = local_model.query(args.query)
 
     print("Result:")
-    print(response[0]['generated_text'])
+    print(response)
     return 0
 
 
@@ -40,10 +41,13 @@ def together_chat_cmd(args: argparse.Namespace) -> int:
 
 def checkthat_task2_cmd(args: argparse.Namespace) -> int:
     llm: LLMBackend
+    model_id: str | None = args.model_id
 
     match args.backend:
         case "together-ai":
-            llm = TogetherLLMBackend()
+            llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
+        case "local":
+            llm = LocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_MODEL)
         case _:
             raise NotImplementedError()
     
@@ -94,7 +98,8 @@ def parse_args() -> argparse.Namespace:
     together_chat_req.set_defaults(cmd=together_chat_cmd)
 
     checkthat_task2 = subp.add_parser('checkthat-task2', description='Harness to run the CheckThat! Task 2 and run tests on data.')
-    checkthat_task2.add_argument('backend', type=str, choices=['together-ai'], help='LLM backend to use.')
+    checkthat_task2.add_argument('backend', type=str, choices=['together-ai', 'local', 'trained'], help='LLM backend to use.')
+    checkthat_task2.add_argument('-m', '--model-id', type=str, default=None, help='Override for the default model. Huggingface ID if local/trained, together-ai for the together-ai backend.')
     checkthat_task2.add_argument('profile', type=str, choices=[
         os.path.splitext(x.name)[0]
         for x in os.scandir(os.path.join(os.curdir, 'profiles'))
@@ -106,7 +111,7 @@ def parse_args() -> argparse.Namespace:
     checkthat_task2.set_defaults(cmd=checkthat_task2_cmd)
 
     local_chat = subp.add_parser('chat')
-    local_chat.add_argument('-m', '--model-id', type=str, default='mistralai/Mistral-7B-Instruct-v0.3', help='Model ID to load from hugging face.')
+    local_chat.add_argument('-m', '--model-id', type=str, default=DEFAULT_HUGGINGFACE_MODEL, help='Model ID to load from hugging face.')
     local_chat.add_argument('query', type=str, help='The prompt to make to the LLM')
     local_chat.set_defaults(cmd=local_chat_cmd)
 

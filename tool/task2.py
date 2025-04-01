@@ -115,7 +115,7 @@ class CheckThatTask2(object):
             if type(opt_value) is float or (type(opt_value) is str and (opt_value in ["", CheckThatTask2.OUTPUT_COLUMN_EMPTY])):
                 rows_to_fill.append(key)
 
-        print(f'fill-eval-table: Querying {len(rows_to_fill)}. This may take a long time.')        
+        print(f'fill-eval-table: Querying {len(rows_to_fill)}. This may take a long time.')
         for c in rows_to_fill:
             row: pandas.Series = self.eval_frame.loc[c]
             query_result = self.backend.query(row['input'])
