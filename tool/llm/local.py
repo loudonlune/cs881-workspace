@@ -8,16 +8,21 @@ class LocalLLMBackend(LLMBackend):
     def __init__(self, base_model_name: str):
         self.base_model_name = base_model_name
 
-    def initialize(self, use_flash: bool = False, additional_model_args: dict = {}):
+    def initialize(self, use_flash: bool = False, use_4bit_quant: bool = True, additional_model_args: dict = {}):
         if use_flash:
             additional_model_args['attn_implementation'] = 'flash_attention_2'
+
+        if use_4bit_quant:
+            additional_model_args['quantization_config'] = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_quant_storage=torch.bfloat16,
+                bnb_4bit_compute_dtype=torch.bfloat16,
+            )
 
         self.tokenizer = AutoTokenizer.from_pretrained(self.base_model_name)
         self.model = AutoModelForCausalLM.from_pretrained(
             self.base_model_name,
             device_map="auto",
-            #torch_dtype=torch.bfloat16,
-            quantization_config=BitsAndBytesConfig(load_in_4bit=True),
             **additional_model_args,
         )
     

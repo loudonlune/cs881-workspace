@@ -11,7 +11,7 @@ class LLMBackend(object):
     Interface for whatever LLM we are using to implement the task.
     """
 
-    def initialize(self):
+    def initialize(self, *args, **kwargs):
         raise NotImplementedError()
     
     def train(self, _, **__):

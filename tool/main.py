@@ -15,6 +15,14 @@ from typing import Optional
 DEFAULT_HUGGINGFACE_MODEL: str = 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B'
 FREE_MODEL: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 
+def are_you_sure(clear_eval_table: bool) -> bool:
+    if clear_eval_table:
+        usn: str = input("Are you sure you would like to clear the evaluation table? [y/N]?")
+
+        if usn.strip().lower() == 'y':
+            return True
+    return False
+
 def noop(_: argparse.Namespace) -> int:
     print("No operation was given.")
     return 0
@@ -69,6 +77,10 @@ def categorizing_data_cmd(args: argparse.Namespace) -> int:
         print("no-query mode: Not training or filling eval table for LLM.")
     
 def checkthat_task2_cmd(args: argparse.Namespace) -> int:
+    if not are_you_sure(args):
+        print("User was not sure. Terminating.")
+        return 0
+
     llm: LLMBackend
     model_id: Optional[str] = args.model_id
 
@@ -77,7 +89,7 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
         llm.initialize()
     elif args.backend ==  "local":
         llm = LocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_MODEL)
-        llm.initialize(use_flash=args.use_flash_attn, additional_model_args={})
+        llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant)
     else:
         raise NotImplementedError()
 
@@ -138,6 +150,7 @@ def parse_args() -> argparse.Namespace:
     checkthat_task2.add_argument('-c', '--clear-eval-table', action='store_true', help='Deletes the eval table when provided.')
     checkthat_task2.add_argument('-i', '--init-only', action='store_true', help='Only run the initialization of the eval table.')
     checkthat_task2.add_argument('-f', '--use-flash-attn', action='store_true', help='Use flash attention implementation.')
+    checkthat_task2.add_argument('-n4', '--no-4bit-quant', action='store_true', help='When set, disables 4 bit quantization.')
     checkthat_task2.add_argument('-nq', '--no-query', action='store_true', help='Do not query the LLM.')
     checkthat_task2.set_defaults(cmd=checkthat_task2_cmd)
 
