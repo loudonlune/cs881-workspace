@@ -5,7 +5,6 @@ from queue import Queue
 import time
 from together import Together
 from together.types.chat_completions import ChatCompletionResponse
-from typing import override
 
 from tool.llm.base import LLMBackend
 
@@ -52,17 +51,14 @@ class TogetherLLMBackend(LLMBackend):
         self._tq = Queue(TogetherLLMBackend.THROTTLE_MAX)
         self._model = model
 
-    @override
     def initialize(self):
         self.together_client = get_together_client()
         if not self.together_client:
             raise ResourceWarning("Failed to create Together client.")
 
-    @override
     def train(self, _: pandas.DataFrame):
         pass
 
-    @override
     def query(self, querytext: str) -> str:
         # Throttling. Wait such that the oldest request occurred over a minute ago if we have issued
         #   10 requests and the oldest of those occurred less than a minute ago.

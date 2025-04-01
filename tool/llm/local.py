@@ -1,5 +1,4 @@
 
-from sympy import use
 from tool.llm.base import LLMBackend
 
 from transformers import BitsAndBytesConfig, AutoModelForCausalLM, AutoTokenizer
