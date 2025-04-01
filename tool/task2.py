@@ -3,6 +3,8 @@ from curses.ascii import isalnum
 
 import jinja2
 import nltk
+from nltk.metrics.distance import jaro_similarity, jaro_winkler_similarity, masi_distance, jaccard_distance, edit_distance
+
 nltk.download('wordnet')
 
 import numpy
@@ -141,3 +143,38 @@ class CheckThatTask2(object):
             return round(numpy.average(meteors), 4)
         else:
             return 0.0
+    def interval_distances(self):
+        tokenizer = nltk.tokenize.NLTKWordTokenizer()
+        def tokenize_custom(input: str) -> Iterable[str]:
+            return filter(lambda tok: all(map(lambda c: isalnum(c), tok)), tokenizer.tokenize(input))
+        jaccrad_d = [
+            jaccard_distance(label1=[tokenize_custom(row["reference"])], label2=tokenize_custom(row["output"]))
+            for _, row in self.eval_frame.iterrows()
+            if type(row['output']) is str]
+        jaro = [
+            jaro_similarity(s1=[tokenize_custom(row["reference"])], s2=tokenize_custom(row["output"]))
+            for _, row in self.eval_frame.iterrows()
+            if type(row['output']) is str
+            ]
+        jaro_winlket = [
+            jaro_winkler_similarity(s1=[tokenize_custom(row["reference"])], s2=tokenize_custom(row["output"]))
+            for _, row in self.eval_frame.iterrows()
+            if type(row['output']) is str
+            ]
+        masi_dist =[
+            masi_distance(label1=[tokenize_custom(row["reference"])], label2=tokenize_custom(row["output"]))
+            for _, row in self.eval_frame.iterrows()
+            if type(row['output']) is str
+            ]
+        edit_d = [
+            edit_distance(s1=[tokenize_custom(row["reference"])], s2=tokenize_custom(row["output"]))
+            for _, row in self.eval_frame.iterrows()
+            if type(row['output']) is str
+        ]
+        avg_jaccard_distance = round(numpy.average(jaccrad_d))
+        avg_jaro_distance = round(numpy.average(jaro))
+        avg_jaro_winklet = round(numpy.average(jaro_winlket))
+        avg_masi_distance = round(numpy.average(masi_dist))
+        avg_edit_d = round(numpy.average(edit_d))
+        return avg_jaccard_distance, avg_jaro_distance, avg_jaro_winklet, avg_masi_distance, avg_edit_d
+
