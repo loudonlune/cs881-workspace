@@ -53,7 +53,7 @@ class TogetherLLMBackend(LLMBackend):
         self._tq = Queue(TogetherLLMBackend.THROTTLE_MAX)
         self._model = model
 
-    def initialize(self):
+    def initialize(self, *args, **kwargs):
         self.together_client = get_together_client()
         if not self.together_client:
             raise ResourceWarning("Failed to create Together client.")
