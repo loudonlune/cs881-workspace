@@ -61,7 +61,7 @@ class TogetherLLMBackend(LLMBackend):
     def train(self, _: pandas.DataFrame):
         pass
 
-    def query(self, querytext: str) -> str:
+    def query(self, querytext: str, system_prompt: Optional[str] ) -> str:
         # Throttling. Wait such that the oldest request occurred over a minute ago if we have issued
         #   10 requests and the oldest of those occurred less than a minute ago.
         if self._tq.qsize() >= TogetherLLMBackend.THROTTLE_MAX:
@@ -69,15 +69,21 @@ class TogetherLLMBackend(LLMBackend):
             delta: float = time.monotonic() - last_time
             if delta < TogetherLLMBackend.THROTTLE_TIME:
                 time.sleep(60.0 - delta)
-        
+        if system_prompt is None:
+            message=[{
+                "role":"system", "content": system_prompt,
+                "role": "user", "content": querytext,
+            }]
+        else:
+            message=[{
+                "role": "user", "content": querytext,
+            }]
+
         # Put in the time we're running the query into the queue.
         self._tq.put_nowait(time.monotonic())
         response: ChatCompletionResponse = self.together_client.chat.completions.create(
             model=self._model,
-            messages=[{
-                "role": "user",
-                "content": querytext,
-            }]
+            messages=message
         )
 
         if type(response) is not ChatCompletionResponse:

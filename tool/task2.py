@@ -1,5 +1,6 @@
 
 from curses.ascii import isalnum
+from tabnanny import check
 
 import jinja2
 import nltk
@@ -25,6 +26,81 @@ class CheckThatTask2Data(object):
         self.dev_ds = pandas.read_csv(os.path.join(base_path, "dev", "dev-eng.csv"))
         self.test_ds = pandas.read_csv(os.path.join(base_path, "test", "test-eng.csv"))
         self.train_ds = pandas.read_csv(os.path.join(base_path, "train", "train-eng.csv"))
+
+class CategorizeData(object):
+    backend: LLMBackend
+    data: CheckThatTask2Data
+    OUTPUT_COLUMN_EMPTY: str = '---'
+    _cache_path: os.PathLike
+
+    category_df: pandas.DataFrame | None = None
+
+    def __init__(self, backend, repository_path: os.PathLike = os.path.join(os.curdir, "checkthat_data"), cache_path: os.PathLike = os.path.join(os.curdir, '.checkthat_cache')):
+        
+        if not os.path.isdir(repository_path):
+            print("ERROR: You must clone the CheckThat! data repository first! Use the provided makefile.")
+            raise FileNotFoundError(repository_path)
+        self.data = CheckThatTask2Data(repository_path)
+        if not os.path.isdir(cache_path):
+                try:
+                    os.mkdir(cache_path)
+                except Exception as e:
+                    print("ERROR: Failed to create cache directory.")
+                    raise e
+        self.cat_file: os.PathLike = os.path.join(self._cache_path, f"category.csv")
+
+    def delete_cat_table_file(self):
+        if os.path.isfile(self.cat_file):
+            os.remove(self.cat_file)
+        else:
+            print("Note: cat file did not exist. Didn't change anything...")   
+    def initialize_cat_table(self):
+            if not os.path.isfile(self.cat_file):
+                queries = []
+                results = []
+
+                for _, row in self.data.dev_ds.iterrows():
+                    queries.append(CheckThatTask2.OUTPUT_COLUMN_EMPTY)
+                    results.append(row['category'])
+
+                self.eval_frame = pandas.DataFrame({"input": queries, "output": results})
+                print(f'init: Created new eval sheet with {len(queries)} test prompts.')
+                self.save_cat_table()
+            else:
+                print('init: Eval sheet already exists.')
+                self.cat_frame = pandas.read_csv(self.cat_file)
+
+    def save_cat_table(self):
+        self.cat_frame[['input', 'output',]].to_csv(self.cat_file)
+
+    def delete_cat_table_file(self):
+        if os.path.isfile(self.eval_file):
+            os.remove(self.eval_file)
+        else:
+            print("Note: Eval file did not exist. Didn't change anything...")
+    def fill_cat_table(self):
+        rows_to_fill = []        
+
+        for key, row in self.cat_frame.iterrows():
+            opt_value: float | str = row['output']
+
+            # Empty cells in pandas data frames are a bit of a headache.
+            if type(opt_value) is float or (type(opt_value) is str and (opt_value in ["", CheckThatTask2.OUTPUT_COLUMN_EMPTY])):
+                rows_to_fill.append(key)
+
+        print(f'fill-eval-table: Querying {len(rows_to_fill)}. This may take a long time.')
+        count = 0
+        for c in rows_to_fill:
+            row: pandas.Series = self.eval_frame.loc[c]
+            query_result = self.backend.query(row['input'])
+            query_result = query_result.split(":")
+            len_query = len(query_result)
+            self.eval_frame.at[c, 'output'] = query_result[len_query-1]
+            count += 1
+            print(f'{rows_to_fill - count} rows remaining')
+
+            # Save the file each time we get a response to memoize them eagerly.
+            self.save_cat_table()       
 
 class CheckThatTask2(object):
     """

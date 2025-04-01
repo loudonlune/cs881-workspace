@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 
 import argparse
+import cmd
 import os
 import jinja2
 
 from tool.llm.base import LLMBackend, login_to_huggingface
 from tool.llm.together_ai import TogetherLLMBackend, together_prompt
 from tool.llm.local import LocalLLMBackend
-from tool.task2 import CheckThatTask2
+from tool.task2 import CheckThatTask2, CategorizeData
 
 from typing import Optional
 
@@ -47,8 +48,34 @@ def local_chat_cmd(args: argparse.Namespace) -> int:
 def together_chat_cmd(args: argparse.Namespace) -> int:
     print("Result:", together_prompt(args.model, args.prompt))
     return 0
+# Short function to categorize the data into 3 categories
+def categorizing_data_cmd(args: argparse.Namespace) -> int:
+    llm: LLMBackend
+    model_id: str | None = args.model_id
 
+    match args.backend:
+        case "together-ai":
+            llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
+        case "local":
+            llm = LocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_MODEL)
+        case _:
+            raise NotImplementedError()
+    cd = CategorizeData(llm)
+    if args.clear_eval_table:
+        cd.delete_cat_table_file()
 
+    cd.initialize_cat_table()
+
+    # Bail out early if the user has told us to stop after initializing the evaluation table.
+    if args.init_only:
+        print("init-only mode: Not doing anything further.")
+        return 0
+
+    if not args.no_query:
+        cd.fill_cat_table()
+    else:
+        print("no-query mode: Not training or filling eval table for LLM.")
+    
 def checkthat_task2_cmd(args: argparse.Namespace) -> int:
     if not are_you_sure(args):
         print("User was not sure. Terminating.")
@@ -92,12 +119,12 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
 
     # Then, use eval table to determine the METEOR score average across each row.
     meteor_score = ctt2.calculate_meteor_score_avg()
-
+    avg_jaccard_distance, avg_jaro_distance, avg_jaro_winklet, avg_masi_distance, avg_edit_d = ctt2.interval_distances()
     ctt2.save_eval_table()
 
     # Print the evaluation result.
     print(f'Meteor score for profile "{ctt2.profile_name}": {meteor_score}')
-
+    print(f"avg jaccard distance {avg_jaccard_distance}, avg jaro distance {avg_jaro_distance}, avg jaro winklet {avg_jaro_winklet}, avg masi distance {avg_masi_distance}, avg edit distnace {avg_edit_d}")
     return 0
 
 
@@ -131,7 +158,10 @@ def parse_args() -> argparse.Namespace:
     local_chat.add_argument('-m', '--model-id', type=str, default=DEFAULT_HUGGINGFACE_MODEL, help='Model ID to load from hugging face.')
     local_chat.add_argument('query', type=str, help='The prompt to make to the LLM')
     local_chat.set_defaults(cmd=local_chat_cmd)
-
+    
+    categorize = subp.add_parser("categorize")
+    categorize.add_argument("-test")
+    categorize.set_defaults(cmd=categorizing_data_cmd)
     return parser.parse_args()
 
 
