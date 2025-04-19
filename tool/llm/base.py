@@ -14,7 +14,7 @@ class LLMBackend(object):
     def initialize(self, *args, **kwargs):
         raise NotImplementedError()
     
-    def train(self, _, **__):
+    def train(self, *_, **__):
         """
         Run training on this model.
         """

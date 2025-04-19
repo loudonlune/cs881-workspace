@@ -7,12 +7,14 @@ import jinja2
 
 from tool.llm.base import LLMBackend, login_to_huggingface
 from tool.llm.together_ai import TogetherLLMBackend, together_prompt
-from tool.llm.local import LocalLLMBackend
+from tool.llm.local import LocalSeq2SeqLLMBackend, LocalCausalLLMBackend
+from tool.llm.trained import TrainedLocalLLMBackend
 from tool.task2 import CheckThatTask2, CategorizeData
 
 from typing import Optional
 
-DEFAULT_HUGGINGFACE_MODEL: str = 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B'
+DEFAULT_HUGGINGFACE_CAUSAL_MODEL: str = 'deepseek-ai/DeepSeek-R1-Distill-Qwen-1.5B'
+DEFAULT_HUGGINGFACE_S2S_MODEL: str = 'google-t5/t5-small'
 FREE_MODEL: str = "meta-llama/Llama-3.3-70B-Instruct-Turbo"
 
 def are_you_sure(clear_eval_table: bool) -> bool:
@@ -34,7 +36,7 @@ def local_chat_cmd(args: argparse.Namespace) -> int:
 
     login_to_huggingface()
 
-    local_model = LocalLLMBackend(args.model_id)
+    local_model = LocalSeq2SeqLLMBackend(args.model_id)
     local_model.initialize()
 
     print("Prompting the model...")
@@ -57,7 +59,7 @@ def categorizing_data_cmd(args: argparse.Namespace) -> int:
     if args.backend == "together-ai":
         llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
     elif args.backend == "local":
-        llm = LocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_MODEL)
+        llm = LocalSeq2SeqLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
     else:
         raise NotImplementedError()
     cd = CategorizeData(llm)
@@ -87,8 +89,13 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
     if args.backend == "together-ai":
         llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
         llm.initialize()
-    elif args.backend ==  "local":
-        llm = LocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_MODEL)
+    elif args.backend == "local-s2s":
+        llm = LocalSeq2SeqLLMBackend(model_id or DEFAULT_HUGGINGFACE_S2S_MODEL)
+        llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant)
+    elif args.backend == "local-causal":
+        llm = LocalCausalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
+    elif args.backend == "trained":
+        llm = TrainedLocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_S2S_MODEL)
         llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant)
     else:
         raise NotImplementedError()
@@ -112,7 +119,14 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
         return 0
 
     if not args.no_query:
-        ctt2.train()
+        # Will need to augment this when implementing the experts.
+        ctt2.initialize_train_data_from_train_ds()
+        
+        if not args.no_train:
+            ctt2.train()
+        else:
+            print('skipping training. error will be emitted if the model has not been trained and saved.')
+
         ctt2.fill_eval_table()
     else:
         print("no-query mode: Not training or filling eval table for LLM.")
@@ -140,7 +154,7 @@ def parse_args() -> argparse.Namespace:
     together_chat_req.set_defaults(cmd=together_chat_cmd)
 
     checkthat_task2 = subp.add_parser('checkthat-task2', description='Harness to run the CheckThat! Task 2 and run tests on data.')
-    checkthat_task2.add_argument('backend', type=str, choices=['together-ai', 'local', 'trained'], help='LLM backend to use.')
+    checkthat_task2.add_argument('backend', type=str, choices=['together-ai', 'local-s2s', 'local-causal', 'trained'], help='LLM backend to use.')
     checkthat_task2.add_argument('-m', '--model-id', type=str, default=None, help='Override for the default model. Huggingface ID if local/trained, together-ai for the together-ai backend.')
     checkthat_task2.add_argument('profile', type=str, choices=[
         os.path.splitext(x.name)[0]
@@ -152,11 +166,12 @@ def parse_args() -> argparse.Namespace:
     checkthat_task2.add_argument('-f', '--use-flash-attn', action='store_true', help='Use flash attention implementation.')
     checkthat_task2.add_argument('-n4', '--no-4bit-quant', action='store_true', help='When set, disables 4 bit quantization.')
     checkthat_task2.add_argument('-nq', '--no-query', action='store_true', help='Do not query the LLM.')
+    checkthat_task2.add_argument('-nt', '--no-train', action='store_true', help='Do not train the LLM (if supported).')
     checkthat_task2.add_argument('-cp', '--cache-path', type=str, help='Path to write evaluation data to. Defaults to ./.checkthat_cache.')
     checkthat_task2.set_defaults(cmd=checkthat_task2_cmd)
 
     local_chat = subp.add_parser('chat')
-    local_chat.add_argument('-m', '--model-id', type=str, default=DEFAULT_HUGGINGFACE_MODEL, help='Model ID to load from hugging face.')
+    local_chat.add_argument('-m', '--model-id', type=str, default=DEFAULT_HUGGINGFACE_CAUSAL_MODEL, help='Model ID to load from hugging face.')
     local_chat.add_argument('query', type=str, help='The prompt to make to the LLM')
     local_chat.set_defaults(cmd=local_chat_cmd)
     

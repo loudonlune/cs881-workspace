@@ -11,6 +11,7 @@ nltk.download('wordnet')
 import numpy
 import os
 import pandas
+import datasets
 from typing import Iterable, Optional
 
 from tool.llm.base import LLMBackend
@@ -108,6 +109,7 @@ class CheckThatTask2(object):
     """
     prompt_template: Optional[str] = None
     eval_frame: Optional[pandas.DataFrame] = None
+    train_data: Optional[datasets.Dataset] = None
     data: CheckThatTask2Data
     backend: LLMBackend
     query_tmpl: jinja2.Template
@@ -147,6 +149,28 @@ class CheckThatTask2(object):
         else:
             print("Note: Eval file did not exist. Didn't change anything...")
     
+    def initialize_train_data_from_train_ds(self):
+        """
+        Create training dataset from the given train dataset.
+        """
+        queries = []
+        results = []
+
+        for _, row in self.data.train_ds.iterrows():
+            queries.append(
+                self.query_tmpl.render(input=row['post'])
+            )
+            results.append(
+                row['normalized claim']
+            )
+        
+        self.train_data = datasets.Dataset.from_dict(
+            {
+                "input": queries,
+                "output": results,
+            }
+        )
+
     def initialize_eval_table(self):
         if not os.path.isfile(self.eval_file):
             queries = []
@@ -178,7 +202,7 @@ class CheckThatTask2(object):
 
         Arbitrary kwargs may be passed in for parameterization of this process.
         """
-        self.backend.train(self.data, **self.trainargs)
+        self.backend.train(self.train_data, **self.trainargs)
     
     def fill_eval_table(self):
         rows_to_fill = []        
