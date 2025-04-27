@@ -86,19 +86,22 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
     llm: LLMBackend
     model_id: Optional[str] = args.model_id
 
-    if args.backend == "together-ai":
-        llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
-        llm.initialize()
-    elif args.backend == "local-s2s":
-        llm = LocalSeq2SeqLLMBackend(model_id or DEFAULT_HUGGINGFACE_S2S_MODEL)
-        llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant)
-    elif args.backend == "local-causal":
-        llm = LocalCausalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
-    elif args.backend == "trained":
-        llm = TrainedLocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
-        llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant, skip_train=args.no_train)
+    if (not args.init_only) or (args.no_train and args.no_query):
+        if args.backend == "together-ai":
+            llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
+            llm.initialize()
+        elif args.backend == "local-s2s":
+            llm = LocalSeq2SeqLLMBackend(model_id or DEFAULT_HUGGINGFACE_S2S_MODEL)
+            llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant)
+        elif args.backend == "local-causal":
+            llm = LocalCausalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
+        elif args.backend == "trained":
+            llm = TrainedLocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
+            llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant, skip_train=args.no_train)
+        else:
+            raise NotImplementedError()
     else:
-        raise NotImplementedError()
+        print("Skipping model initialization. It is not needed.")
 
     # Load profile from disk.
     with open(os.path.join(os.curdir, "profiles", f"{args.profile}.jinja2")) as templ_file:
@@ -118,17 +121,15 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
         print("init-only mode: Not doing anything further.")
         return 0
 
+    if args.backend == "trained" and not args.no_train:
+        ctt2.initialize_train_data_from_train_ds()
+        ctt2.train()
+        print(f"Run again with no train set to inference with the model. Model saved as: {ctt2.backend.local_model_name}")
+        return 0
+
     if not args.no_query:
         # Will need to augment this when implementing the experts.
-        ctt2.initialize_train_data_from_train_ds()
-        
-        if args.backend == "trained" and not args.no_train:
-            ctt2.train()
-            print(f"Run again with the \"local\" mode and pass in the following model name: {ctt2.backend.local_model_name}")
-            return 0
-        else:
-            print("Running evaluation...")
-
+        print("Running evaluation...")
         ctt2.fill_eval_table()
     else:
         print("no-query mode: Not training or filling eval table for LLM.")
