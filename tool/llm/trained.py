@@ -12,7 +12,7 @@ import torch
 from torch.utils.data import DataLoader
 from torch.optim import AdamW
 
-from peft import LoraConfig, TaskType, get_peft_model, AutoPeftModelForCausalLM
+from peft import TaskType, get_peft_model, PromptTuningConfig, PromptTuningInit
 
 from typing import List, Optional
 
@@ -32,14 +32,12 @@ class TrainedLocalLLMBackend(LLMBackend):
                 bnb_4bit_compute_dtype=torch.bfloat16,
             )
 
-        lora_cfg = LoraConfig(
+        pt_cfg = PromptTuningConfig(
             task_type=TaskType.CAUSAL_LM,
-            inference_mode=False,
-        )
-
-        self.inference_config = LoraConfig(
-            task_type=TaskType.CAUSAL_LM,
-            inference_mode=True,
+            prompt_tuning_init=PromptTuningInit.TEXT,
+            num_virtual_tokens=16,
+            prompt_tuning_init_text=self.system_prompt,
+            tokenizer_name_or_path=self.base_model_name,
         )
 
         self.addtl_args = additional_model_args
@@ -48,8 +46,7 @@ class TrainedLocalLLMBackend(LLMBackend):
         self.model = get_peft_model(AutoModelForCausalLM.from_pretrained(
             self.base_model_name,
             device_map="auto",
-            **additional_model_args,
-        ), lora_cfg)
+        ), pt_cfg)
     
     # Inspiration taken from here: https://huggingface.co/spaces/PEFT/causal-language-modeling/blob/main/prompt_tuning_clm.ipynb
     # Modified this a bit and added some comments to guide my understanding.
