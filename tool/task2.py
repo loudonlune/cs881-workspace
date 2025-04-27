@@ -282,7 +282,6 @@ class CheckThatTask2(object):
     def calculate_statistics(self) -> List[MetricStatistics]:
         tokenizer = nltk.tokenize.NLTKWordTokenizer()
         sentence_encoder: SentenceTransformer = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
-        sentence_encoder.to("cuda")
 
         def tokenize_custom(input: str) -> Iterable[str]:
             return filter(lambda tok: all(map(lambda c: isalnum(c), tok)), tokenizer.tokenize(input))
