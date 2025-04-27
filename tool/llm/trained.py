@@ -227,6 +227,9 @@ class TrainedLocalLLMBackend(LLMBackend):
             trainer.train()
             trainer.save_model(name)
 
+        # Try to tell Python to free the resources.
+        del self.model
+
         self.model = AutoModelForCausalLM.from_pretrained(
             name,
             device_map="auto",
