@@ -5,6 +5,8 @@ from tabnanny import check
 import jinja2
 import nltk
 from nltk.metrics.distance import jaro_similarity, jaro_winkler_similarity, masi_distance, jaccard_distance, edit_distance
+from sentence_transformers import SentenceTransformer
+import torch
 
 nltk.download('wordnet')
 
@@ -12,7 +14,7 @@ import numpy
 import os
 import pandas
 import datasets
-from typing import Iterable, Optional
+from typing import Any, Iterable, Optional, List, Tuple, Callable
 
 from tool.llm.base import LLMBackend
 
@@ -102,6 +104,57 @@ class CategorizeData(object):
 
             # Save the file each time we get a response to memoize them eagerly.
             self.save_cat_table()       
+
+class MetricStatistics(object):
+    metric: str
+    entries: List[float]
+    average: float
+    dist: Tuple[float, float, float, float, float]
+
+    def __init__(self,
+                 # Name of metric.
+                 metric_name: str,
+                 # Eval frame.
+                 frame: pandas.DataFrame,
+                 # Function to tokenize source and test.
+                 tok_fn: Callable[[str, str], Tuple[Any, Any]],
+                 # Function to calculate metric from tokenized value.
+                 fun: Callable[[Any, Any], float]):
+        # Compute the metric.
+        print(f"MetricStatistics ctor: Computing metric {metric_name}...")
+
+        metrics = [
+            fun(*tok_fn(row['reference'], row['output']))
+            for _, row in frame.iterrows()
+            if type(row['output']) is str and row['output'] != CheckThatTask2.OUTPUT_COLUMN_EMPTY
+        ]
+
+        self.entries = metrics
+        self.metric = metric_name
+        self.average = round(numpy.average(metrics), 4)
+        self.dist = (
+            round(numpy.min(metrics), 4),
+            round(numpy.percentile(metrics, 25.0), 4),
+            round(numpy.percentile(metrics, 50.0), 4),
+            round(numpy.percentile(metrics, 75.0), 4),
+            round(numpy.max(metrics), 4)
+        )
+        print("MetricStatistics ctor: Complete!")
+
+    def print(self):
+        head = "=" * 20, f"Metric: {self.metric}", "=" * 20
+        vmin, lq, median, hq, vmax = self.dist
+
+        print(head)
+
+        print(f"Average: {self.average}")
+        print(f"Minimum:        {vmin}")
+        print(f"Lower Quartile: {lq}")
+        print(f"Median:         {median}")
+        print(f"Upper Quartile: {hq}")
+        print(f"Maximum:        {vmax}")
+
+        print("=" * len(head))
 
 class CheckThatTask2(object):
     """
@@ -226,37 +279,42 @@ class CheckThatTask2(object):
             # Save the file each time we get a response to memoize them eagerly.
             self.save_eval_table()
 
-    def calculate_meteor_score_avg(self) -> float:
+    def calculate_statistics(self) -> List[MetricStatistics]:
         tokenizer = nltk.tokenize.NLTKWordTokenizer()
+        sentence_encoder: SentenceTransformer = SentenceTransformer('sentence-transformers/all-MiniLM-L6-v2')
+        sentence_encoder.to("cuda")
+
         def tokenize_custom(input: str) -> Iterable[str]:
             return filter(lambda tok: all(map(lambda c: isalnum(c), tok)), tokenizer.tokenize(input))
+        
+        def nltk_tokenize(ref: str, test: str) -> Tuple[List[str], List[str]]:
+            return (tokenize_custom(ref), tokenize_custom(test))
 
-        meteors = [
-            nltk.meteor(references=[tokenize_custom(row['reference'])], hypothesis=tokenize_custom(row['output']))
-            for _, row in self.eval_frame.iterrows()
-            if type(row['output']) is str and row['output'] != CheckThatTask2.OUTPUT_COLUMN_EMPTY
+        def calculate_meteor_score(ref: List[str], test: List[str]) -> float:
+            return nltk.meteor(references=[ref], hypothesis=test)
+        
+        def jaccard(ref: List[str], test: List[str]) -> float:
+            return jaccard_distance(label1=set(ref), label2=set(test))
+        
+        def masi(ref: List[str], test: List[str]) -> float:
+            return masi_distance(label1=set(ref), label2=set(test))
+
+        def sentence_encode(ref: str, test: str) -> Tuple[torch.Tensor, torch.Tensor]:
+            reft, testt = sentence_encoder.encode([ref, test], convert_to_tensor=True)
+            return (reft, testt)
+        
+        def cosine_similarity(ref: torch.Tensor, test: torch.Tensor) -> float:
+            return torch.nn.functional.cosine_similarity(ref, test)[0][0]
+
+        metrics = [
+            ("METEOR",              nltk_tokenize, calculate_meteor_score),
+            ("Jaccard Distance",    nltk_tokenize, jaccard),
+            ("Masi Distance",       nltk_tokenize, masi),
+            ("Cosine Similarity of Sentence Embeddings", sentence_encode, cosine_similarity)
         ]
 
-        print(f"calculate_meteor_score_avg: Calculated individual meteor score for {len(meteors)} rows.")
-
-        if len(meteors) > 0:
-            return round(numpy.average(meteors), 4)
-        else:
-            return 0.0
-
-    def interval_distances(self):
-        tokenizer = nltk.tokenize.NLTKWordTokenizer()
-        def tokenize_custom(input: str) -> Iterable[str]:
-            return filter(lambda tok: all(map(lambda c: isalnum(c), tok)), tokenizer.tokenize(input))
-        jaccrad_d = [
-            jaccard_distance(label1=set(tokenize_custom(row["reference"])), label2=set(tokenize_custom(row["output"])))
-            for _, row in self.eval_frame.iterrows()
-            if type(row['output']) is str and row['output'] != CheckThatTask2.OUTPUT_COLUMN_EMPTY]
-        masi_dist =[
-            masi_distance(label1=set(tokenize_custom(row["reference"])), label2=set(tokenize_custom(row["output"])))
-            for _, row in self.eval_frame.iterrows()
-            if type(row['output']) is str and row['output'] != CheckThatTask2.OUTPUT_COLUMN_EMPTY]
-        avg_jaccard_distance = round(numpy.average(jaccrad_d),4)
-        avg_masi_distance = round(numpy.average(masi_dist), 4)
-        return avg_jaccard_distance, avg_masi_distance
+        return [
+            MetricStatistics(name, self.eval_frame, tfn, sfn)
+            for name, tfn, sfn in metrics
+        ]
 

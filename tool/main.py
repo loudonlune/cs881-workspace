@@ -133,9 +133,10 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
     else:
         print("no-query mode: Not training or filling eval table for LLM.")
 
-    # Then, use eval table to determine the METEOR score average across each row.
-    meteor_score = ctt2.calculate_meteor_score_avg()
-    avg_jaccard_distance, avg_masi_distance = ctt2.interval_distances()
+    # Then, use eval table to determine every score across each row.
+    for score in ctt2.calculate_statistics():
+        score.print()
+
     ctt2.save_eval_table()
 
     # Print the evaluation result.
