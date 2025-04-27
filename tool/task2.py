@@ -195,14 +195,14 @@ class CheckThatTask2(object):
     def save_eval_table(self):
         self.eval_frame[['input', 'output', 'reference']].to_csv(self.eval_file)
 
-    def train(self, no_train: bool, cap: Optional[int] = None):
+    def train(self, cap: Optional[int] = None):
         """
         If we wanted to further train/refine an LLM using datasets, this function
         serves as a place to do that.
 
         Arbitrary kwargs may be passed in for parameterization of this process.
         """
-        self.backend.train(self.train_data, skip_train=no_train, cap=cap, **self.trainargs)
+        self.backend.train(self.train_data, cap=cap, **self.trainargs)
     
     def fill_eval_table(self):
         rows_to_fill = []        

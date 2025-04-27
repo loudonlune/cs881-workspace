@@ -96,7 +96,7 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
         llm = LocalCausalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
     elif args.backend == "trained":
         llm = TrainedLocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
-        llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant)
+        llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant, skip_train=args.no_train)
     else:
         raise NotImplementedError()
 
@@ -122,7 +122,12 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
         # Will need to augment this when implementing the experts.
         ctt2.initialize_train_data_from_train_ds()
         
-        ctt2.train(args.no_train)
+        if args.backennd == "trained" and not args.no_train:
+            ctt2.train()
+            print(f"Run again with the \"local\" mode and pass in the following model name: {ctt2.backend.local_model_name}")
+            return
+        else:
+            print("Running evaluation...")
 
         ctt2.fill_eval_table()
     else:
