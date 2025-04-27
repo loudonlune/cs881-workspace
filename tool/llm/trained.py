@@ -65,7 +65,7 @@ class TrainedLocalLLMBackend(LLMBackend):
         if len(training_dataset) * test_size < 35.0:
             print("WARNING: There is not much data in this dataset. The resulting model will be poor.")
 
-        split_datasets = training_dataset.train_test_split(test_size=test_size, shuffle=True, shuffle_seed=shuffle_seed)
+        split_datasets = training_dataset.train_test_split(test_size=test_size, shuffle=True, seed=shuffle_seed)
 
         def dataset_preprocessor(ds):
             # Get the size of the current batch.
