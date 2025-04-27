@@ -305,9 +305,9 @@ class CheckThatTask2(object):
         def cosine_similarity(ref: torch.Tensor, test: torch.Tensor) -> float:
             # print(ref)
             # print(test)
-            result = torch.nn.functional.cosine_similarity(ref, test)
+            result = torch.nn.functional.cosine_similarity(ref, test, dim=0)
             print(result)
-            return result
+            return result.item()
 
         metrics = [
             ("METEOR",              nltk_tokenize, calculate_meteor_score),
