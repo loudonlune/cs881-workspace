@@ -303,6 +303,8 @@ class CheckThatTask2(object):
             return (reft, testt)
         
         def cosine_similarity(ref: torch.Tensor, test: torch.Tensor) -> float:
+            print(ref)
+            print(test)
             return torch.nn.functional.cosine_similarity(ref, test).item()
 
         metrics = [
