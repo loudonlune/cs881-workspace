@@ -9,10 +9,7 @@ import evaluate
 import numpy
 import torch
 
-from torch.utils.data import DataLoader
-from torch.optim import AdamW
-
-from peft import TaskType, get_peft_model, PromptTuningConfig, PromptTuningInit
+from peft import TaskType, get_peft_model, PromptTuningConfig, PromptTuningInit, AutoPeftModelForCausalLM
 
 from typing import List, Optional
 
@@ -23,6 +20,8 @@ class TrainedLocalLLMBackend(LLMBackend):
     training_mode: bool
 
     def __init__(self, base_model_name: str, system_prompt: str = "Extract the verifiable claim as one sentence from the user input.", local_model_name: str = "checkthat_task2_finetune"):
+        print("Base model:", base_model_name)
+        print("Local model:", local_model_name)
         self.base_model_name = base_model_name
         self.local_model_name = local_model_name
         self.system_prompt = system_prompt
@@ -45,7 +44,7 @@ class TrainedLocalLLMBackend(LLMBackend):
 
         # Load the trained model if we're not training.
         if skip_train:
-            self.model = AutoModelForCausalLM.from_pretrained(
+            self.model = AutoPeftModelForCausalLM.from_pretrained(
                 self.local_model_name,
                 device_map="auto",
                 **additional_model_args
