@@ -95,7 +95,7 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
     elif args.backend == "local-causal":
         llm = LocalCausalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
     elif args.backend == "trained":
-        llm = TrainedLocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_S2S_MODEL)
+        llm = TrainedLocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
         llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant)
     else:
         raise NotImplementedError()
@@ -122,10 +122,7 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
         # Will need to augment this when implementing the experts.
         ctt2.initialize_train_data_from_train_ds()
         
-        if not args.no_train:
-            ctt2.train()
-        else:
-            print('skipping training. error will be emitted if the model has not been trained and saved.')
+        ctt2.train(args.no_train)
 
         ctt2.fill_eval_table()
     else:
