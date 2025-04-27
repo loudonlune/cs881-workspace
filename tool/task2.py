@@ -129,6 +129,7 @@ class MetricStatistics(object):
             if type(row['output']) is str and row['output'] != CheckThatTask2.OUTPUT_COLUMN_EMPTY
         ]
 
+        self.completeness = round((float(len(metrics)) / float(len(frame))) * 100.0, 2)
         self.entries = metrics
         self.metric = metric_name
         self.average = round(numpy.average(metrics), 4)
@@ -142,7 +143,7 @@ class MetricStatistics(object):
         print("MetricStatistics ctor: Complete!")
 
     def print(self):
-        head = "=" * 20, f"Metric: {self.metric}", "=" * 20
+        head = "=" * 20, f"Metric: {self.metric} (Completeness: {self.completeness}%)", "=" * 20
         vmin, lq, median, hq, vmax = self.dist
 
         print(head)
