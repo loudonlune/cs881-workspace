@@ -227,7 +227,7 @@ class TrainedLocalLLMBackend(LLMBackend):
             trainer.train()
             trainer.save_model(name)
 
-        self.model = AutoModelForCausalLM(
+        self.model = AutoModelForCausalLM.from_pretrained(
             name,
             device_map="auto",
             **self.addtl_args,
