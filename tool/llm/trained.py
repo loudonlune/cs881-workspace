@@ -54,8 +54,8 @@ class TrainedLocalLLMBackend(LLMBackend):
               num_epochs: int = 5,
               test_size: float = 0.2,
               shuffle_seed: int = 0xABCD,
-              batch_size: int = 16,
-              max_length: int = 128):
+              batch_size: int = 8,
+              max_length: int = 512):
         """
         Run training on this model.
         """
