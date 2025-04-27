@@ -122,10 +122,10 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
         # Will need to augment this when implementing the experts.
         ctt2.initialize_train_data_from_train_ds()
         
-        if args.backennd == "trained" and not args.no_train:
+        if args.backend == "trained" and not args.no_train:
             ctt2.train()
             print(f"Run again with the \"local\" mode and pass in the following model name: {ctt2.backend.local_model_name}")
-            return
+            return 0
         else:
             print("Running evaluation...")
 
