@@ -95,6 +95,7 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
             llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant)
         elif args.backend == "local-causal":
             llm = LocalCausalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
+            llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant)
         elif args.backend == "trained":
             llm = TrainedLocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
             llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant, skip_train=args.no_train)
