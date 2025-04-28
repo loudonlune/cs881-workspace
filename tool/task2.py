@@ -143,7 +143,7 @@ class MetricStatistics(object):
         print("MetricStatistics ctor: Complete!")
 
     def print(self):
-        head = "=" * 20, f"Metric: {self.metric} (Completeness: {self.completeness}%)", "=" * 20
+        head = ("=" * 20) + f" Metric: {self.metric} (Completeness: {self.completeness}%) " + ("=" * 20)
         vmin, lq, median, hq, vmax = self.dist
 
         print(head)

@@ -244,7 +244,7 @@ class TrainedLocalLLMBackend(LLMBackend):
         trainer.train()
         trainer.save_model(self.local_model_name)
     
-    def query(self, prompt: str, temperature: float = 0.25) -> str:
+    def query(self, prompt: str, temperature: float = 0.0) -> str:
         """
         Query the LLM.
         """
