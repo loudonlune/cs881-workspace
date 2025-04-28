@@ -87,6 +87,8 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
     model_id: Optional[str] = args.model_id
 
     if (not args.init_only) or (args.no_train and args.no_query):
+        xargs = {"system_prompt": args.system_prompt } if args.system_prompt else {}
+
         if args.backend == "together-ai":
             llm = TogetherLLMBackend(model=model_id or FREE_MODEL)
             llm.initialize()
@@ -94,10 +96,10 @@ def checkthat_task2_cmd(args: argparse.Namespace) -> int:
             llm = LocalSeq2SeqLLMBackend(model_id or DEFAULT_HUGGINGFACE_S2S_MODEL)
             llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant)
         elif args.backend == "local-causal":
-            llm = LocalCausalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
+            llm = LocalCausalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL, **xargs)
             llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant)
         elif args.backend == "trained":
-            llm = TrainedLocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL)
+            llm = TrainedLocalLLMBackend(model_id or DEFAULT_HUGGINGFACE_CAUSAL_MODEL, **xargs)
             llm.initialize(use_flash=args.use_flash_attn, use_4bit_quant=not args.no_4bit_quant, skip_train=args.no_train)
         else:
             raise NotImplementedError()
@@ -165,6 +167,7 @@ def parse_args() -> argparse.Namespace:
     checkthat_task2.add_argument('-c', '--clear-eval-table', action='store_true', help='Deletes the eval table when provided.')
     checkthat_task2.add_argument('-i', '--init-only', action='store_true', help='Only run the initialization of the eval table.')
     checkthat_task2.add_argument('-f', '--use-flash-attn', action='store_true', help='Use flash attention implementation.')
+    checkthat_task2.add_argument('-s', '--system-prompt', type=str, help='The system prompt to use for training or querying. There is a default.')
     checkthat_task2.add_argument('-n4', '--no-4bit-quant', action='store_true', help='When set, disables 4 bit quantization.')
     checkthat_task2.add_argument('-nq', '--no-query', action='store_true', help='Do not query the LLM.')
     checkthat_task2.add_argument('-nt', '--no-train', action='store_true', help='Do not train the LLM (if supported).')

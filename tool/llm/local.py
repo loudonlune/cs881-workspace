@@ -68,8 +68,11 @@ class LocalSeq2SeqLLMBackend(LLMBackend):
         return output_text.split('</think>')[-1].strip()
 
 class LocalCausalLLMBackend(LLMBackend):
-    def __init__(self, base_model_name: str):
+    def __init__(self, base_model_name: str, system_prompt: str = "You create objective, verifiable summaries."
+                                    "Prioritize summarizing the objective parts of the text."
+                                    "Keep some key details, such as proper nouns, in your response."):
         self.base_model_name = base_model_name
+        self.system_prompt = system_prompt
 
     def initialize(self, use_flash: bool = False, use_4bit_quant: bool = True, additional_model_args: dict = {}):
         if use_flash:
@@ -96,16 +99,13 @@ class LocalCausalLLMBackend(LLMBackend):
         pass
     
     def query(self,
-              prompt: str,
-              system_prompt: str =  "You create objective, verifiable summaries."
-                                    "Prioritize summarizing the objective parts of the text."
-                                    "Keep some key details, such as proper nouns, in your response.") -> str:
+              prompt: str) -> str:
         """
         Query the LLM.
         """
 
         messages = [
-            {"role": "system", "content": system_prompt},
+            {"role": "system", "content": self.system_prompt},
             {"role": "user", "content": prompt},
         ]
 
